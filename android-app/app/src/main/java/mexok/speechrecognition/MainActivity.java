@@ -83,8 +83,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             public void onResults(Bundle bundle) {
                 ArrayList<String> results = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-                if (results.size() > 0)
+                if (results.size() > 0) {
                     send(results);
+                    Toast.makeText(MainActivity.this, results.get(0), Toast.LENGTH_SHORT).show();
+                }
 
                 // Use a dirty hack for continuation of listening
                 if (isStarted) {

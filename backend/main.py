@@ -6,17 +6,23 @@ from flask import Flask, send_from_directory, render_template, request
 from flask_cors import CORS
 from pynvim import attach
 
+from context import Context
+
 
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 nvim = attach('socket', path='/tmp/nvim')
 
+context = Context(nvim=nvim)
+
 
 @app.route('/send_voice_cmd', methods=['POST'])
 def send_voice_cmd():
-    result = flask.request.json['results']
-    nvim.input(result[0])
+    global context
+    result: str = flask.request.json['results'][0]
+    words = result.lower().split(' ')
+    context.process_words(words=words)
     return flask.jsonify({}), 200
 
 
