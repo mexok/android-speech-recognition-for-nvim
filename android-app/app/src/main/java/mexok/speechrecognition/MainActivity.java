@@ -16,8 +16,16 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Locale;
+
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -76,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onResults(Bundle bundle) {
                 ArrayList<String> results = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
                 if (results.size() > 0)
-                    Toast.makeText(MainActivity.this, String.join("\n", results), Toast.LENGTH_SHORT).show();
+                    send(results);
 
                 // Use a dirty hack for continuation of listening
                 if (isStarted) {
@@ -95,6 +103,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
+    }
+
+    public void send(ArrayList<String> results) {
+        new Thread(() -> {
+            for (int i = 0; i < results.size(); ++i) {
+                results.set(i, "\"" + results.get(i) + "\"");
+            }
+            try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+                HttpPost post = new HttpPost("http://192.168.0.230:7001/send_voice_cmd");
+                StringEntity json = new StringEntity("{\"results\":[" + String.join(",", results) + "]}", ContentType.APPLICATION_JSON);
+                post.setEntity(json);
+                CloseableHttpResponse response = httpClient.execute(post);
+                response.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     @Override

@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="mexok.speechrecognition">
 
+    <!-- We need internet for sending HTTP-Requests. Voice recognition should work without internet access. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
 
     <application
