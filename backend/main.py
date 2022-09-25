@@ -5,9 +5,6 @@ import flask
 from flask import Flask, send_from_directory, render_template, request
 from flask_cors import CORS
 from pynvim import attach
-from nvim_mode import get_vim_mode
-
-from context import Context
 
 
 logging.basicConfig(level=logging.INFO)
@@ -15,19 +12,21 @@ logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 nvim = attach('socket', path='/tmp/nvim')
 
-context = Context(nvim=nvim)
-
 
 @app.route('/send_voice_cmd', methods=['POST'])
 def send_voice_cmd():
     global context
     if flask.request.json is None:
         raise TypeError('Expected json to be not null')
-    result: str = flask.request.json['results'][0]
-    words = result.lower().split(' ')
-    m = str(nvim.command_output("echo mode()"))
-    mode = get_vim_mode(m=m)
-    context.process_words(words=words, mode=mode)
+    words: str = flask.request.json['results']['words']
+    words = words.lower()
+    force_finalize: str = flask.request.json['results']['force_finalize']
+    if force_finalize.lower() == 'true':
+        force_finalize = 'true'
+    else:
+        force_finalize = 'false'
+
+    nvim.command_output( f"lua vim.g.vcmd.exec('{words}', {force_finalize})")
     return flask.jsonify({}), 200
 
 
