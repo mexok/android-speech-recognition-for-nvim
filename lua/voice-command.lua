@@ -86,19 +86,15 @@ function _get_splitted_words(words)
     return splitted_words
 end
 
-function vcmd.exec(words, force_finalize)
-    if force_finalize == nil then
-        force_finalize = true
-    end
-
+function vcmd.exec(words)
     local v = vim.g.vcmd
     words = _get_splitted_words(words)
     table.move(words, 1, #words, #v.buffer + 1, v.buffer)
     vim.g.vcmd = v
-    _process_buffer(force_finalize)
+    _process_buffer()
 end
 
-function _process_buffer(force_finalize)
+function _process_buffer()
     local v = vim.g.vcmd
     m = _get_current_mode()
     if (type(v.cmds[m]) ~= 'table') then
@@ -134,15 +130,8 @@ function _process_buffer(force_finalize)
             t = t[next_word]
         end
     end
-    if (force_finalize) then
-        _finalize_unchecked_command(t['_cmd'])
-        v.buffer = {}
-    elseif (#t == 1 and type(t['_cmd']) == 'string') then
-        -- there is no logical next match for the word command
-        _finalize_unchecked_command(t['_cmd'])
-        v.buffer = {}
-    end
-
+    _finalize_unchecked_command(t['_cmd'])
+    v.buffer = {}
     vim.g.vcmd = v
 end
 
@@ -167,13 +156,13 @@ end
 
 function _finalize_unmatched_single_word(word)
     if string.gmatch(word, "^\\d+$") then
-        vim.input(word)
+        vim.fn.input(word)
     end
 end
 
 function _finalize_unchecked_command(cmd)
     if (type(cmd) == 'string') then
-        vim.input(cmd)
+        vim.fn.input(cmd)
     end
 end
 

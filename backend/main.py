@@ -8,26 +8,32 @@ from pynvim import attach
 
 
 logging.basicConfig(level=logging.INFO)
-
 app = Flask(__name__)
 nvim = attach('socket', path='/tmp/nvim')
+
+file_logger = logging.FileHandler("error_log.txt")
+file_logger.setLevel(logging.INFO)
+logging.root.addHandler(file_logger)
+
+
+@app.route('/connection_test', methods=['POST'])
+def connection_test():
+    return flask.jsonify({}), 200
 
 
 @app.route('/send_voice_cmd', methods=['POST'])
 def send_voice_cmd():
-    global context
-    if flask.request.json is None:
-        raise TypeError('Expected json to be not null')
-    words: str = flask.request.json['results']['words']
-    words = words.lower()
-    force_finalize: str = flask.request.json['results']['force_finalize']
-    if force_finalize.lower() == 'true':
-        force_finalize = 'true'
-    else:
-        force_finalize = 'false'
+    try:
+        if flask.request.json is None:
+            raise TypeError('Expected json to be not null')
+        words: str = flask.request.json['results']['words']
+        words = words.lower()
 
-    nvim.command_output( f"lua vim.g.vcmd.exec('{words}', {force_finalize})")
-    return flask.jsonify({}), 200
+        nvim.command_output( f"lua vim.g.vcmd.exec('{words}', true)")
+        return flask.jsonify({}), 200
+    except Exception:
+        logging.exception("Error during callback")
+        raise
 
 
 if __name__ == '__main__':
