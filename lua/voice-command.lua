@@ -13,6 +13,7 @@
 
 local vcmd = {}
 vcmd.cmds = {}
+vcmd.preprocessor = {}
 vcmd.buffer = {}
 
 function vcmd.setup()
@@ -79,16 +80,27 @@ function _get_splitted_words(words)
     splitted_words = words
     if (type(splitted_words) ~= 'table') then
         splitted_words = {}
-        for word in string.gmatch(words, "([^\\s]+)") do
+        for word in string.gmatch(words, "[^%s]+") do
             table.insert(splitted_words, word)
         end
     end
     return splitted_words
 end
 
+function vcmd.define_replacement(word, replacement)
+    local v = vim.g.vcmd
+    v.preprocessor[word] = replacement
+    vim.g.vcmd = v
+end
+
 function vcmd.exec(words)
     local v = vim.g.vcmd
     words = _get_splitted_words(words)
+    for i = 1, #words do
+        if (v.preprocessor[words[i]] ~= nil) then
+            words[i] = v.preprocessor[words[i]]
+        end
+    end
     table.move(words, 1, #words, #v.buffer + 1, v.buffer)
     vim.g.vcmd = v
     _process_buffer()
@@ -96,7 +108,7 @@ end
 
 function _process_buffer()
     local v = vim.g.vcmd
-    m = _get_current_mode()
+    local m = _get_current_mode()
     if (type(v.cmds[m]) ~= 'table') then
         -- no mode mapping available, falling back to single word processing
         for _, word in pairs(v.buffer) do
@@ -136,7 +148,7 @@ function _process_buffer()
 end
 
 function _get_current_mode()
-    m = vim.cmd("echo mode()")
+    local m = vim.api.nvim_command_output("echo mode()")
     if (m == 'n') then
         return 'n'
     elseif (m == 'v' or m == 'V' or m == '^V') then
@@ -155,15 +167,19 @@ function _get_current_mode()
 end
 
 function _finalize_unmatched_single_word(word)
-    if string.gmatch(word, "^\\d+$") then
-        vim.fn.input(word)
+    if not word:match("%D") then
+        _feed_input(word)
     end
 end
 
 function _finalize_unchecked_command(cmd)
     if (type(cmd) == 'string') then
-        vim.fn.input(cmd)
+        _feed_input(cmd)
     end
+end
+
+function _feed_input(cmd)
+    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes(cmd, true, false, true), 'm', false)
 end
 
 

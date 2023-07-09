@@ -9,7 +9,6 @@ from pynvim import attach
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
-nvim = attach('socket', path='/tmp/nvim')
 
 file_logger = logging.FileHandler("error_log.txt")
 file_logger.setLevel(logging.INFO)
@@ -29,7 +28,11 @@ def send_voice_cmd():
         words: str = flask.request.json['results']['words']
         words = words.lower()
 
-        nvim.command_output( f"lua vim.g.vcmd.exec('{words}', true)")
+        nvim = attach('socket', path='/tmp/nvim')
+        try:
+            nvim.command_output( f"lua vim.g.vcmd.exec('{words}')")
+        finally:
+            nvim.close()
         return flask.jsonify({}), 200
     except Exception:
         logging.exception("Error during callback")
